@@ -14,10 +14,11 @@
   .badge { background: #1f6feb33; border: 1px solid #1f6feb; color: #58a6ff; font-size: 11px; padding: 2px 8px; border-radius: 12px; }
 
   .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 24px 32px; }
+  .grid > * { min-width: 0; }
   .grid-wide { grid-template-columns: 1fr 2fr; }
   .grid-full { grid-template-columns: 1fr; }
 
-  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; min-width: 0; }
   .card h2 { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
 
   /* ── Stats ── */
@@ -32,8 +33,9 @@
 
   /* ── Architecture flow ── */
   .arch { padding: 0 32px 24px; }
-  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 4px; }
-  .flow-node { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px 18px; min-width: 160px; flex-shrink: 0; }
+  .arch .card { overflow: hidden; }
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
+  .flow-node { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px 18px; min-width: 150px; flex: 1 0 150px; }
   .flow-node h3 { font-size: 12px; font-weight: 700; color: #58a6ff; margin-bottom: 8px; }
   .flow-node ul { list-style: none; font-size: 11px; color: #8b949e; line-height: 1.8; }
   .flow-node ul li::before { content: "▸ "; color: #30363d; }
@@ -97,6 +99,22 @@
   .dep span { color: #8b949e; float: right; font-size: 10px; }
 
   footer { text-align: center; padding: 20px; font-size: 11px; color: #30363d; border-top: 1px solid #21262d; margin-top: 8px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 960px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .grid { grid-template-columns: 1fr 1fr; padding: 16px; }
+    .grid-wide { grid-template-columns: 1fr; }
+    .arch { padding: 0 16px 16px; }
+  }
+  @media (max-width: 600px) {
+    header { padding: 16px; flex-wrap: wrap; }
+    .stats { grid-template-columns: repeat(2, 1fr); padding: 0 16px; }
+    .grid { grid-template-columns: 1fr; padding: 12px 16px; }
+    .file-grid { grid-template-columns: 1fr; }
+    .dep-grid { grid-template-columns: 1fr; }
+    .tline-time { min-width: 90px; font-size: 10px; }
+  }
 </style>
 </head>
 <body>
