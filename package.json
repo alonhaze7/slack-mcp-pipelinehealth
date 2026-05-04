@@ -1,0 +1,27 @@
+{
+  "name": "mci-pipeline-agent",
+  "version": "1.0.0",
+  "description": "MCI Pipeline Intelligence Agent for Slack — health monitoring, auto-repair, token alerts, morning summaries, and AI canvas",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest",
+    "morning-summary": "node src/services/scheduler.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@slack/bolt": "^3.17.0",
+    "@slack/web-api": "^7.0.0",
+    "axios": "^1.6.0",
+    "cron": "^3.1.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "node-cache": "^5.1.2",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2"
+  }
+}
