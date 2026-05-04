@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MCI Pipeline Agent — Architecture Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 22px; font-weight: 700; color: #58a6ff; }
+  header p { font-size: 13px; color: #8b949e; margin-top: 2px; }
+  .badge { background: #1f6feb33; border: 1px solid #1f6feb; color: #58a6ff; font-size: 11px; padding: 2px 8px; border-radius: 12px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 24px 32px; }
+  .grid-wide { grid-template-columns: 1fr 2fr; }
+  .grid-full { grid-template-columns: 1fr; }
+
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 20px; }
+  .card h2 { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+
+  /* ── Stats ── */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 32px 0; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 18px 20px; }
+  .stat .num { font-size: 36px; font-weight: 700; line-height: 1; }
+  .stat .label { font-size: 12px; color: #8b949e; margin-top: 6px; }
+  .stat.green .num { color: #3fb950; }
+  .stat.red .num { color: #f85149; }
+  .stat.yellow .num { color: #d29922; }
+  .stat.blue .num { color: #58a6ff; }
+
+  /* ── Architecture flow ── */
+  .arch { padding: 0 32px 24px; }
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 4px; }
+  .flow-node { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px 18px; min-width: 160px; flex-shrink: 0; }
+  .flow-node h3 { font-size: 12px; font-weight: 700; color: #58a6ff; margin-bottom: 8px; }
+  .flow-node ul { list-style: none; font-size: 11px; color: #8b949e; line-height: 1.8; }
+  .flow-node ul li::before { content: "▸ "; color: #30363d; }
+  .arrow { display: flex; align-items: center; padding: 0 8px; color: #30363d; font-size: 22px; flex-shrink: 0; }
+
+  /* ── File map ── */
+  .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .file-item { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px 14px; }
+  .file-item .name { font-size: 12px; font-weight: 600; color: #58a6ff; font-family: monospace; }
+  .file-item .desc { font-size: 11px; color: #8b949e; margin-top: 4px; line-height: 1.5; }
+  .file-item .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .tag { font-size: 10px; padding: 1px 6px; border-radius: 10px; }
+  .tag.slack { background: #4a1d4a; color: #d2a8ff; }
+  .tag.ai { background: #1a2f4a; color: #79c0ff; }
+  .tag.api { background: #1a3a2a; color: #56d364; }
+  .tag.core { background: #3a2a1a; color: #e3b341; }
+
+  /* ── Repair strategies ── */
+  .strategy-list { display: flex; flex-direction: column; gap: 8px; }
+  .strategy { display: flex; align-items: flex-start; gap: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px 14px; }
+  .strategy .icon { font-size: 20px; flex-shrink: 0; }
+  .strategy .title { font-size: 12px; font-weight: 700; color: #e6edf3; }
+  .strategy .detail { font-size: 11px; color: #8b949e; margin-top: 3px; line-height: 1.5; }
+  .strategy .trigger { font-size: 10px; color: #8b949e; background: #161b22; border: 1px solid #30363d; border-radius: 4px; padding: 1px 6px; margin-top: 5px; display: inline-block; font-family: monospace; }
+
+  /* ── Scheduler timeline ── */
+  .timeline { display: flex; flex-direction: column; gap: 10px; }
+  .tline { display: flex; align-items: center; gap: 14px; }
+  .tline-time { font-size: 11px; font-family: monospace; color: #58a6ff; min-width: 120px; text-align: right; }
+  .tline-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .tline-dot.green { background: #3fb950; }
+  .tline-dot.orange { background: #d29922; }
+  .tline-dot.blue { background: #58a6ff; }
+  .tline-label { font-size: 12px; color: #e6edf3; }
+  .tline-sub { font-size: 11px; color: #8b949e; }
+  .tline-bar { flex: 1; height: 2px; background: #30363d; border-radius: 1px; }
+
+  /* ── Field migration table ── */
+  .mig-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .mig-table th { text-align: left; padding: 6px 10px; color: #8b949e; border-bottom: 1px solid #30363d; }
+  .mig-table td { padding: 6px 10px; border-bottom: 1px solid #1c2128; font-family: monospace; }
+  .mig-table td:first-child { color: #f85149; }
+  .mig-table td:last-child { color: #3fb950; }
+  .mig-table td.arrow-cell { color: #30363d; font-family: sans-serif; text-align: center; }
+
+  /* ── Health score gauge ── */
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0; }
+  .gauge-svg { width: 160px; height: 90px; }
+  .gauge-score { font-size: 36px; font-weight: 700; color: #3fb950; text-align: center; margin-top: -4px; }
+  .gauge-label { font-size: 11px; color: #8b949e; text-align: center; margin-top: 2px; }
+
+  /* ── Slack commands ── */
+  .cmd-list { display: flex; flex-direction: column; gap: 8px; }
+  .cmd { display: flex; align-items: flex-start; gap: 10px; }
+  .cmd-name { font-size: 12px; font-family: monospace; color: #d2a8ff; background: #2d1f52; border: 1px solid #4a2a8a; border-radius: 5px; padding: 2px 8px; white-space: nowrap; }
+  .cmd-desc { font-size: 11px; color: #8b949e; padding-top: 3px; }
+
+  /* ── Deps ── */
+  .dep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .dep { font-size: 11px; font-family: monospace; color: #79c0ff; background: #0d1117; border: 1px solid #30363d; border-radius: 5px; padding: 5px 10px; }
+  .dep span { color: #8b949e; float: right; font-size: 10px; }
+
+  footer { text-align: center; padding: 20px; font-size: 11px; color: #30363d; border-top: 1px solid #21262d; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚡ MCI Pipeline Intelligence Agent</h1>
+    <p>Slack bot · Datorama / Marketing Cloud Intelligence · Claude claude-sonnet-4-20250514 powered</p>
+  </div>
+  <span class="badge">v1.0.0</span>
+</header>
+
+<!-- Stats -->
+<div class="stats" style="padding-top:24px">
+  <div class="stat green"><div class="num">4</div><div class="label">Repair Strategies</div></div>
+  <div class="stat blue"><div class="num">4</div><div class="label">Slash Commands</div></div>
+  <div class="stat yellow"><div class="num">3</div><div class="label">Cron Jobs</div></div>
+  <div class="stat red"><div class="num">9</div><div class="label">Meta Field Migrations</div></div>
+</div>
+
+<!-- Architecture flow -->
+<div class="arch" style="margin-top:24px">
+  <div class="card">
+    <h2>System Architecture — Request Flow</h2>
+    <div class="flow" style="margin-top:8px">
+      <div class="flow-node">
+        <h3>💬 Slack</h3>
+        <ul>
+          <li>@mention / DM</li>
+          <li>Button clicks</li>
+          <li>Slash commands</li>
+          <li>Modal submits</li>
+        </ul>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-node">
+        <h3>🔌 Bolt (Socket)</h3>
+        <ul>
+          <li>messageHandlers</li>
+          <li>actionHandlers</li>
+          <li>shortcuts</li>
+          <li>Socket Mode</li>
+        </ul>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-node">
+        <h3>🤖 Claude Agent</h3>
+        <ul>
+          <li>chat(userId, msg)</li>
+          <li>generateRepairPlan</li>
+          <li>morningSummary</li>
+          <li>Per-user history</li>
+        </ul>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-node">
+        <h3>🔧 Repair Service</h3>
+        <ul>
+          <li>inferStrategy</li>
+          <li>executeRepair</li>
+          <li>executeBulkRepair</li>
+          <li>onProgress cb</li>
+        </ul>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-node">
+        <h3>📡 MCI API</h3>
+        <ul>
+          <li>getAllPipelines</li>
+          <li>triggerReprocess</li>
+          <li>updateMapping</li>
+          <li>refreshToken</li>
+        </ul>
+      </div>
+      <div class="arrow">→</div>
+      <div class="flow-node">
+        <h3>🏭 Datorama</h3>
+        <ul>
+          <li>Workspaces</li>
+          <li>Pipelines</li>
+          <li>Connectors</li>
+          <li>Run history</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 2 -->
+<div class="grid grid-wide" style="padding-top:0">
+
+  <!-- File map -->
+  <div class="card">
+    <h2>Source Files</h2>
+    <div class="file-grid">
+      <div class="file-item">
+        <div class="name">index.js</div>
+        <div class="desc">Entry point — boots Slack Bolt app &amp; cron scheduler</div>
+        <div class="tags"><span class="tag core">core</span></div>
+      </div>
+      <div class="file-item">
+        <div class="name">anthropicAgent.js</div>
+        <div class="desc">Claude chat, repair plan generator, morning narrative</div>
+        <div class="tags"><span class="tag ai">ai</span></div>
+      </div>
+      <div class="file-item">
+        <div class="name">mciClient.js</div>
+        <div class="desc">All MCI REST API calls with 5-min node-cache layer</div>
+        <div class="tags"><span class="tag api">api</span></div>
+      </div>
+      <div class="file-item">
+        <div class="name">repairService.js</div>
+        <div class="desc">Repair strategy detection &amp; execution orchestrator</div>
+        <div class="tags"><span class="tag core">core</span></div>
+      </div>
+      <div class="file-item">
+        <div class="name">scheduler.js</div>
+        <div class="desc">Morning summary, failure polling, token expiry crons</div>
+        <div class="tags"><span class="tag core">core</span></div>
+      </div>
+      <div class="file-item">
+        <div class="name">blockBuilders.js</div>
+        <div class="desc">All Slack Block Kit layouts — messages, modals, progress</div>
+        <div class="tags"><span class="tag slack">slack</span></div>
+      </div>
+      <div class="file-item">
+        <div class="name">messageHandlers.js</div>
+        <div class="desc">@mention &amp; DM routing → AI agent</div>
+        <div class="tags"><span class="tag slack">slack</span></div>
+      </div>
+      <div class="file-item">
+        <div class="name">actionHandlers.js</div>
+        <div class="desc">Button clicks, modal submissions, OAuth re-auth, snooze</div>
+        <div class="tags"><span class="tag slack">slack</span></div>
+      </div>
+      <div class="file-item">
+        <div class="name">shortcuts.js</div>
+        <div class="desc">/mci-status /mci-repair /mci-ask /mci-summary</div>
+        <div class="tags"><span class="tag slack">slack</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: strategies + health -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+
+    <div class="card">
+      <h2>Auto-Repair Strategies</h2>
+      <div class="strategy-list">
+        <div class="strategy">
+          <div class="icon">🔄</div>
+          <div>
+            <div class="title">META_API_DEPRECATION</div>
+            <div class="detail">Detect deprecated fields → remap to v19 equivalents → migrate endpoint → test run 100 records → full reprocess</div>
+            <code class="trigger">API_VERSION_DEPRECATED · v16 · deprecated</code>
+          </div>
+        </div>
+        <div class="strategy">
+          <div class="icon">🔑</div>
+          <div>
+            <div class="title">TOKEN_EXPIRED</div>
+            <div class="detail">Cannot auto-repair — opens Slack OAuth modal, sends user a re-auth link, resumes pipelines on completion</div>
+            <code class="trigger">OAUTH_TOKEN_EXPIRED · UNAUTHORIZED · token</code>
+          </div>
+        </div>
+        <div class="strategy">
+          <div class="icon">⏱️</div>
+          <div>
+            <div class="title">RATE_LIMIT</div>
+            <div class="detail">30s exponential backoff → reprocess only the failed time window</div>
+            <code class="trigger">RATE_LIMIT_EXCEEDED · rate limit</code>
+          </div>
+        </div>
+        <div class="strategy">
+          <div class="icon">🛠️</div>
+          <div>
+            <div class="title">GENERIC</div>
+            <div class="detail">Test run with 100 records → if passes, trigger full reprocess; if fails, flag for manual review</div>
+            <code class="trigger">FIELD_NOT_FOUND · all other codes</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Health Score Formula</h2>
+      <div style="font-family:monospace;font-size:13px;color:#e6edf3;background:#0d1117;padding:14px;border-radius:8px;border:1px solid #30363d;line-height:2">
+        score = <span style="color:#3fb950">100</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;− failed_pipelines × <span style="color:#f85149">10</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;− warning_pipelines × <span style="color:#d29922">4</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;− expiring_tokens × <span style="color:#58a6ff">3</span><br>
+        <span style="color:#8b949e">// floor: 0</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Row 3 -->
+<div class="grid" style="padding-top:0">
+
+  <!-- Scheduler -->
+  <div class="card">
+    <h2>Scheduler Jobs (cron)</h2>
+    <div class="timeline">
+      <div class="tline">
+        <div class="tline-time">0 8 * * 1-5</div>
+        <div class="tline-dot green"></div>
+        <div>
+          <div class="tline-label">Morning Summary</div>
+          <div class="tline-sub">Weekdays 8 AM — full health report + per-pipeline cards</div>
+        </div>
+      </div>
+      <div class="tline">
+        <div class="tline-time">*/15 * * * *</div>
+        <div class="tline-dot orange"></div>
+        <div>
+          <div class="tline-label">Failure Polling</div>
+          <div class="tline-sub">Every 15 min — alerts only on NEW failures</div>
+        </div>
+      </div>
+      <div class="tline">
+        <div class="tline-time">0 */6 * * *</div>
+        <div class="tline-dot blue"></div>
+        <div>
+          <div class="tline-label">Token Expiry Check</div>
+          <div class="tline-sub">Every 6 hrs — urgent alert if ≤ 2 days remaining</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slash commands -->
+  <div class="card">
+    <h2>Slash Commands</h2>
+    <div class="cmd-list">
+      <div class="cmd">
+        <span class="cmd-name">/mci-status</span>
+        <div class="cmd-desc">Full pipeline health overview posted to channel</div>
+      </div>
+      <div class="cmd">
+        <span class="cmd-name">/mci-repair &lt;name&gt;</span>
+        <div class="cmd-desc">Repair a specific pipeline by name or ID — runs auto-repair strategy</div>
+      </div>
+      <div class="cmd">
+        <span class="cmd-name">/mci-ask &lt;question&gt;</span>
+        <div class="cmd-desc">Ask Claude anything about pipelines — ephemeral, per-user history</div>
+      </div>
+      <div class="cmd">
+        <span class="cmd-name">/mci-summary</span>
+        <div class="cmd-desc">Force-post a morning summary immediately</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dependencies -->
+  <div class="card">
+    <h2>Dependencies</h2>
+    <div class="dep-grid">
+      <div class="dep">@slack/bolt <span>^3.17</span></div>
+      <div class="dep">@slack/web-api <span>^7.0</span></div>
+      <div class="dep">@anthropic-ai/sdk <span>^0.20</span></div>
+      <div class="dep">axios <span>^1.6</span></div>
+      <div class="dep">cron <span>^3.1</span></div>
+      <div class="dep">dotenv <span>^16.3</span></div>
+      <div class="dep">express <span>^4.18</span></div>
+      <div class="dep">node-cache <span>^5.1</span></div>
+      <div class="dep">winston <span>^3.11</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Meta field migration table -->
+<div class="grid grid-full" style="padding-top:0">
+  <div class="card">
+    <h2>Meta Field Migrations — Graph API v16 → Marketing API v19</h2>
+    <table class="mig-table">
+      <tr><th>Deprecated field (v16)</th><th></th><th>New field (v19)</th></tr>
+      <tr><td>insights.reach</td><td class="arrow-cell">→</td><td>media_view_count</td></tr>
+      <tr><td>insights.impressions</td><td class="arrow-cell">→</td><td>impression_count</td></tr>
+      <tr><td>insights.spend</td><td class="arrow-cell">→</td><td>spend</td></tr>
+      <tr><td>insights.clicks</td><td class="arrow-cell">→</td><td>inline_link_clicks</td></tr>
+      <tr><td>insights.video_views</td><td class="arrow-cell">→</td><td>video_p100_watched_actions</td></tr>
+      <tr><td>post_impressions</td><td class="arrow-cell">→</td><td>media_view_count</td></tr>
+      <tr><td>post_impressions_unique</td><td class="arrow-cell">→</td><td>media_reach</td></tr>
+      <tr><td>page_views_total</td><td class="arrow-cell">→</td><td>page_views</td></tr>
+      <tr><td>page_engaged_users</td><td class="arrow-cell">→</td><td>page_engaged_users_v2</td></tr>
+    </table>
+  </div>
+</div>
+
+<footer>alonhaze7/slack-mcp-pipelinehealth · MCI Pipeline Intelligence Agent · Built with Claude claude-sonnet-4-20250514</footer>
+
+</body>
+</html>
